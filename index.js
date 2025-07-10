@@ -34,6 +34,7 @@ app.post("/webhook", async (req, res) => {
   );
 
   try {
+    console.log("Creating tickets for:", emails);
     await Promise.all(promises);
     res.status(200).send("Tickets created");
   } catch (err) {
