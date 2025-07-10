@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: freshdesk-multi-ticket-webhook
+    env: node
+    branch: master
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: PORT
+        sync: false
+      - key: FRESHDESK_API_KEY
+        fromDatabase: true
+      - key: FRESHDESK_DOMAIN
+        fromDatabase: true

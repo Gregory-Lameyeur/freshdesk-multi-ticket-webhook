@@ -1,0 +1,49 @@
+const express = require("express");
+const axios = require("axios");
+const app = express();
+app.use(express.json());
+require("dotenv").config();
+
+const FRESHDESK_DOMAIN = process.env.FRESHDESK_DOMAIN;
+const API_KEY = process.env.FRESHDESK_API_KEY;
+
+app.post("/webhook", async (req, res) => {
+  const { subject, description } = req.body;
+
+  const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
+  const emails = [...new Set((subject + " " + description).match(emailRegex))]; // Remove duplicates
+
+  const promises = emails.map((email) =>
+    axios.post(
+      `https://${FRESHDESK_DOMAIN}/api/v2/tickets`,
+      {
+        email,
+        subject: `New ticket for ${email}`,
+        description: `Auto-created ticket from original: ${description}`,
+        status: 2,
+        priority: 1,
+      },
+      {
+        auth: {
+          username: API_KEY,
+          password: "X", // Any dummy password
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    )
+  );
+
+  try {
+    await Promise.all(promises);
+    res.status(200).send("Tickets created");
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).send("Failed to create tickets");
+  }
+});
+
+app.listen(3000, () =>
+  console.log("Webhook server running on port 3000", API_KEY)
+);
