@@ -8,46 +8,49 @@ const FRESHDESK_DOMAIN = process.env.FRESHDESK_DOMAIN;
 const API_KEY = process.env.FRESHDESK_API_KEY;
 
 app.post("/webhook", async (req, res) => {
-  const { to_email, subject, description } = req.body;
+  const ticket = req.body.ticket;
 
-  // Split emails by comma, trim spaces, and remove duplicates
-  const emails = [...new Set(to_email.split(",").map((e) => e.trim()))];
+  if (!ticket) {
+    console.error("No ticket object in payload");
+    return res.status(400).send("Bad Request: no ticket in body");
+  }
 
-  console.log("Creating tickets for:", emails);
+  const toEmails = ticket.to_emails || [];
 
-  const promises = emails.map((email) =>
-    axios.post(
-      `https://${FRESHDESK_DOMAIN}/api/v2/tickets`,
-      {
-        email,
-        subject: `New ticket for ${email}: ${subject}`,
-        description: `Auto-created ticket from original: ${description}`,
-        status: 2,
-        priority: 1,
-        custom_fields: {
-          cf_branch: "Leevin Dublin", // or "Leevin Cork"
-        },
-      },
-      {
-        auth: {
-          username: API_KEY,
-          password: "X", // Dummy password
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    )
-  );
+  if (toEmails.length === 0) {
+    console.log("No 'to_emails' found in the ticket");
+    return res.status(200).send("No To emails to process");
+  }
+
+  console.log("Creating tickets for:", toEmails);
 
   try {
-    await Promise.all(promises);
-    res.status(200).send("Tickets created");
-  } catch (err) {
-    console.error(
-      "❌ Error from Freshdesk:",
-      err.response?.data || err.message
+    const promises = toEmails.map((email) =>
+      axios.post(
+        `https://${FRESHDESK_DOMAIN}/api/v2/tickets`,
+        {
+          email,
+          subject: `New ticket for ${email}: ${ticket.subject}`,
+          description: `Auto-created ticket from original: ${ticket.description}`,
+          status: 2, // Open
+          priority: 1, // Low
+          // Include any custom fields if needed:
+          // custom_fields: { cf_branch: "Leevin Dublin" }
+        },
+        {
+          auth: {
+            username: API_KEY,
+            password: "X", // dummy password as per Freshdesk API auth
+          },
+          headers: { "Content-Type": "application/json" },
+        }
+      )
     );
+
+    await Promise.all(promises);
+    res.status(200).send("Tickets created successfully");
+  } catch (err) {
+    console.error("Error creating tickets:", err.response?.data || err.message);
     res.status(500).send("Failed to create tickets");
   }
 });
