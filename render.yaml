@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: freshdesk-multi-ticket-webhook
+    name: Freshdesk
     env: node
-    branch: master
+    branch: main
     plan: free
     buildCommand: npm install
     startCommand: node index.js
