@@ -32,10 +32,9 @@ app.post("/webhook", async (req, res) => {
           email,
           subject: `New ticket for ${email}: ${ticket.subject}`,
           description: `Auto-created ticket from original: ${ticket.description}`,
-          status: 2, // Open
-          priority: 1, // Low
-          // Include any custom fields if needed:
-          // custom_fields: { cf_branch: "Leevin Dublin" }
+          status: 2,
+          priority: 1,
+          custom_fields: { cf_branch: "Leevin Dublin" },
         },
         {
           auth: {
